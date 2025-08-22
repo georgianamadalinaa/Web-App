@@ -1,0 +1,137 @@
+<?php
+session_start();
+
+// Verificăm dacă utilizatorul este autentificat
+if (!isset($_SESSION['loggedin'])) {
+    header('Location: login.php');
+    exit();
+}
+
+require 'config.php';
+
+$data_points = [];
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $start_date = $_POST['start_date'];
+    $end_date = $_POST['end_date'];
+
+    $sql = "SELECT *, DATE_ADD(Data_plecare, INTERVAL Nr_nopti DAY) AS data_sfarsit FROM contract 
+            WHERE Data_plecare BETWEEN '$start_date' AND '$end_date' OR 
+                  DATE_ADD(Data_plecare, INTERVAL Nr_nopti DAY) BETWEEN '$start_date' AND '$end_date'
+            ORDER BY Suma_plata ASC";
+    $result = $conn->query($sql);
+
+    while ($row = $result->fetch_assoc()) {
+        $data_points[] = [
+            "id" => $row["Nr_Contract"],
+            "Suma_plata" => $row["Suma_plata"]
+        ];
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+    <meta charset="utf-8">
+    <title>Raport Contracte</title>
+    <link rel="stylesheet" href="style.css" media="screen">
+    <link rel="stylesheet" href="style.responsive.css" media="all">
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Lato&amp;subset=latin">
+    <script src="jquery.js"></script>
+    <script src="script.js"></script>
+    <script src="script.responsive.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    
+    <div id="art-main">
+        <header class="art-header">
+            <div class="art-shapes">
+                <div class="art-object0"></div>
+                <div class="art-object2057248001"></div>
+            </div>
+            <h1 class="art-headline">
+                <a href="home.php">Vip Travel</a>
+            </h1>
+            <h2 class="art-slogan">Realize Your Travel Dreams With Us</h2>
+            <nav class="art-nav">
+                <ul class="art-hmenu">
+                    <li><a href="home.php" class="active">Home</a></li>
+                    <li><a href="contract.php">Contract</a></li>
+                    <li><a href="destinatie.php">Destinatie</a></li>
+                    <li><a href="client.php">Client</a></li>
+                </ul>
+            </nav>
+        </header>
+        <div class="art-sheet clearfix">
+            <div class="art-layout-wrapper">
+                <div class="art-content-layout">
+                    <div class="art-content-layout-row">
+                        <div class="art-layout-cell art-content">
+                            <article class="art-post art-article">
+                                <div class="art-postcontent art-postcontent-0 clearfix">
+                                    <h2>Raport Contracte</h2>
+                                    <form method="post" action="contract_chart.php">
+                                        <label for="start_date">Data început:</label>
+                                        <input type="date" id="start_date" name="start_date" required>
+                                        <label for="end_date">Data sfârșit:</label>
+                                        <input type="date" id="end_date" name="end_date" required>
+                                        <input type="submit" value="Generează Raport">
+                                    </form>
+                                    
+                      
+                                    
+                                    <canvas id="contractChart"></canvas>
+                                    
+                                    <script>
+                                    const dataPoints = <?php echo json_encode($data_points); ?>;
+                                    const labels = dataPoints.map(point => point.id);
+                                    const data = dataPoints.map(point => point.Suma_plata);
+
+                                    const ctx = document.getElementById('contractChart').getContext('2d');
+                                    const contractChart = new Chart(ctx, {
+                                        type: 'bar',
+                                        data: {
+                                            labels: labels,
+                                            datasets: [{
+                                                label: 'Suma Totală a Contractelor',
+                                                data: data,
+                                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                                borderColor: 'rgba(75, 192, 192, 1)',
+                                                borderWidth: 1
+                                            }]
+                                        },
+                                        options: {
+                                            scales: {
+                                                y: {
+                                                    beginAtZero: true
+                                                }
+                                            }
+                                        }
+                                    });
+                                    </script>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer class="art-footer">
+            <div class="art-footer-inner">
+                <div style="position:relative;display:inline-block;padding-left:138px;padding-right:138px">
+                    <p><a href="#">Terms of use</a> | <a href="#">Privacy Policy</a> | <a href="#">Advertise With Us</a>&nbsp;</p>
+                    <p>All Rights Reserved.</p>
+                </div>
+                <p class="art-page-footer">
+                    <span id="art-footnote-links"><a href="http://www.artisteer.com/" target="_blank">Web Template</a> created with Artisteer.</span>
+                </p>
+            </div>
+        </footer>
+    </div>
+    <div class="logout">
+        <p><a href="logout.php">Deconectare</a></p>
+    </div>
+</body>
+</html>
